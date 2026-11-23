@@ -8,6 +8,17 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-
+  backend:
+    build: ./backend
+    container_name: taskmanager-backend
+    env_file:
+      - ./backend/.env
+      - ./backend/.env.docker
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    restart: on-failure
+    command: sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"
 volumes:
   pgdata:
