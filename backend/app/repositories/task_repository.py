@@ -8,8 +8,8 @@ class TaskRepository:
         self.db = db
 
     def get_all(self, status: TaskStatus | None = None) -> list[TaskModel]:
-        query = select(TaskModel).order_by(TaskModel.created_at.desc())
-
+        query = select(TaskModel).order_by(TaskModel.due_date.asc(),TaskModel.created_at.desc())
+        
         if status is not None:
             query = query.where(TaskModel.status == status)
 
