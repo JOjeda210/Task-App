@@ -25,8 +25,7 @@ services:
     build: ./frontend
     container_name: taskmanager-frontend
     environment:
-    #TODO: Ver la forma de no tener que hardcodear la url del backend
-      - VITE_API_URL=http://localhost:8000
+      - VITE_API_BASE_URL=http://localhost:8000
     ports:
       - "5173:5173"
     depends_on:

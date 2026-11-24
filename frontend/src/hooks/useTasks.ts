@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type { Task, TaskStatus } from '../types/task'
 import { getTasks } from '../services/taskService'
 
@@ -7,16 +7,21 @@ export const useTasks = (status?: TaskStatus) => {
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
+    const latestRequestId = useRef(0)
+
     const load = useCallback(async () => {
+        const requestId = ++latestRequestId.current
         setIsLoading(true)
         setError(null)
         try {
             const data = await getTasks(status)
+            if (requestId !== latestRequestId.current) return
             setTasks(data)
         } catch {
+            if (requestId !== latestRequestId.current) return
             setError('No se pudieron cargar las tareas')
         } finally {
-            setIsLoading(false)
+            if (requestId === latestRequestId.current) setIsLoading(false)
         }
     }, [status])
 
