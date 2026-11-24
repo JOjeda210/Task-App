@@ -5,7 +5,7 @@ import StatusFilter from '../components/tasks/StatusFilter'
 import TaskList from '../components/tasks/TaskList'
 import ToastNotifications from '../components/tasks/ToastNotifications'
 import { useTasks } from '../hooks/useTasks'
-import { updateTaskStatus } from '../services/taskService'
+import { deleteTask, updateTaskStatus } from '../services/taskService'
 import type { TaskStatus } from '../types/task'
 import type { ToastMessage } from '../types/toast'
 
@@ -16,7 +16,8 @@ export default function TasksPage() {
   const [toasts, setToasts] = useState<ToastMessage[]>([])
   const nextToastId = useRef(1)
 
-  const { tasks, isLoading, error, reload, replaceTask } = useTasks(statusFilter ?? undefined)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const { tasks, isLoading, error, reload, replaceTask, removeTask } = useTasks(statusFilter ?? undefined)
 
   const taskToDelete = taskIdToDelete === null ? undefined : tasks.find((task) => task.id === taskIdToDelete)
 
@@ -50,10 +51,20 @@ export default function TasksPage() {
     [replaceTask, showToast],
   )
 
-  const handleDeleteConfirm = useCallback(() => {
-    setTaskIdToDelete(null)
-    showToast('success', 'Demo: aquí se eliminaría la tarea')
-  }, [showToast])
+  const handleDeleteConfirm = useCallback(async () => {
+    if (taskIdToDelete === null) return
+    setIsDeleting(true)
+    try {
+      await deleteTask(taskIdToDelete)
+      removeTask(taskIdToDelete)
+      showToast('success', 'Tarea eliminada')
+    } catch {
+      showToast('danger', 'No se pudo eliminar la tarea')
+    } finally {
+      setIsDeleting(false)
+      setTaskIdToDelete(null)
+    }
+  }, [taskIdToDelete, removeTask, showToast])
 
   const handleDeleteCancel = useCallback(() => setTaskIdToDelete(null), [])
 
@@ -80,7 +91,7 @@ export default function TasksPage() {
         show={taskIdToDelete !== null}
         title="Eliminar tarea"
         message={`¿Seguro que quieres eliminar "${taskToDelete?.title ?? ''}"? Esta acción no se puede deshacer.`}
-        isLoading={false}
+        isLoading={isDeleting}
         onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}
       />

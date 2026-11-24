@@ -37,6 +37,10 @@ export const useTasks = (status?: TaskStatus) => {
         [status],
     )
 
-    return { tasks, isLoading, error, reload: load, replaceTask }
+    const removeTask = useCallback((id: number) => {
+        setTasks((current) => current.filter((task) => task.id !== id))
+    }, [])
+
+    return { tasks, isLoading, error, reload: load, replaceTask, removeTask }
 }
 
