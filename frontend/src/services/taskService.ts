@@ -6,32 +6,33 @@ const api = Axios.create({
 })
 
 const TASKS_PATH = '/api/tasks'
-export async function getTasks(status?: TaskStatus): Promise<Task[]> {
+
+export const getTasks = async (status?: TaskStatus): Promise<Task[]> => {
   const response = await api.get<Task[]>(TASKS_PATH, { params: { status } });
-  return response.data
+  return response.data;
 }
 
-export async function getTaskById(id: number): Promise<Task> {
+export const getTaskById = async (id: number): Promise<Task> => {
   const response = await api.get<Task>(`${TASKS_PATH}/${id}`);
   return response.data;
 }
 
-export async function createTask(data: TaskCreate): Promise<Task> {
+export const createTask = async (data: TaskCreate): Promise<Task> => {
   const response = await api.post<Task>(TASKS_PATH, data);
   return response.data;
 }
 
-export async function updateTask(id: number, data: TaskUpdate): Promise<Task> {
-  const response = await api.put<Task>(`${TASKS_PATH}/${id}`,data )
-  return response.data; 
+export const updateTask = async (id: number, data: TaskUpdate): Promise<Task> => {
+  const response = await api.put<Task>(`${TASKS_PATH}/${id}`, data);
+  return response.data;
 }
 
-export async function updateTaskStatus(id: number, status: TaskStatus): Promise<Task> {
-  const response = await api.patch<Task>(`${TASKS_PATH}/${id}/status`,{status: status})
-  return response.data; 
+export const updateTaskStatus = async (id: number, status: TaskStatus): Promise<Task> => {
+  const response = await api.patch<Task>(`${TASKS_PATH}/${id}/status`, { status: status });
+  return response.data;
 }
 
-export async function deleteTask(id: number): Promise<void> {
-  await api.delete(`${TASKS_PATH}/${id}`)
-  
+export const deleteTask = async (id: number): Promise<void> => {
+  await api.delete(`${TASKS_PATH}/${id}`);
+
 }
