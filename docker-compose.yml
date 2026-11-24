@@ -21,5 +21,15 @@ services:
       - db
     restart: on-failure
     command: sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"
+  frontend:
+    build: ./frontend
+    container_name: taskmanager-frontend
+    environment:
+    #TODO: Ver la forma de no tener que hardcodear la url del backend
+      - VITE_API_URL=http://localhost:8000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
 volumes:
   pgdata:
