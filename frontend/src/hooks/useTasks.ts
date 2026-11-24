@@ -24,6 +24,19 @@ export const useTasks = (status?: TaskStatus) => {
         load()
     }, [load])
 
-    return { tasks, isLoading, error, reload: load }
+    const replaceTask = useCallback(
+        (updated: Task) => {
+            setTasks((current) =>
+                current.flatMap((task) => {
+                    if (task.id !== updated.id) return [task]
+                    // con un filtro activo, la tarea que ya no coincide sale de la lista
+                    return status && updated.status !== status ? [] : [updated]
+                }),
+            )
+        },
+        [status],
+    )
+
+    return { tasks, isLoading, error, reload: load, replaceTask }
 }
 

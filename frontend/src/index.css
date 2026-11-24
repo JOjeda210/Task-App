@@ -23,6 +23,10 @@ body {
     box-shadow 0.15s ease;
 }
 
+.task-item:has(.dropdown-menu.show) {
+  z-index: 10;
+}
+
 .task-item:hover {
   transform: translateY(-2px);
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.12) !important;

@@ -1,12 +1,13 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ConfirmDialog from '../components/tasks/ConfirmDialog'
 import StatusFilter from '../components/tasks/StatusFilter'
 import TaskList from '../components/tasks/TaskList'
 import ToastNotifications from '../components/tasks/ToastNotifications'
+import { useTasks } from '../hooks/useTasks'
+import { updateTaskStatus } from '../services/taskService'
 import type { TaskStatus } from '../types/task'
 import type { ToastMessage } from '../types/toast'
-import { MOCK_TASKS } from '../utils/mockTasks'
 
 export default function TasksPage() {
   const navigate = useNavigate()
@@ -15,16 +16,9 @@ export default function TasksPage() {
   const [toasts, setToasts] = useState<ToastMessage[]>([])
   const nextToastId = useRef(1)
 
-  // TODO(user): reemplazar mock por datos reales de la API
-  // TODO(user): cargar con getTasks(statusFilter ?? undefined) cuando cambie el filtro y guardar tasks/isLoading/error en estado (idealmente en un hook de src/hooks)
-  const tasks = useMemo(
-    () => (statusFilter ? MOCK_TASKS.filter((task) => task.status === statusFilter) : MOCK_TASKS),
-    [statusFilter],
-  )
-  const isLoading = false
-  const error: string | null = null
+  const { tasks, isLoading, error, reload, replaceTask } = useTasks(statusFilter ?? undefined)
 
-  const taskToDelete = taskIdToDelete === null ? undefined : MOCK_TASKS.find((task) => task.id === taskIdToDelete)
+  const taskToDelete = taskIdToDelete === null ? undefined : tasks.find((task) => task.id === taskIdToDelete)
 
   const showToast = useCallback((variant: ToastMessage['variant'], message: string) => {
     const id = nextToastId.current++
@@ -35,10 +29,9 @@ export default function TasksPage() {
     setToasts((current) => current.filter((toast) => toast.id !== id))
   }, [])
 
-  // useCallback: TaskList/TaskItem están memoizados y necesitan callbacks con identidad estable
   const handleRetry = useCallback(() => {
-    // TODO(user): volver a llamar a getTasks(statusFilter ?? undefined) y gestionar isLoading/error
-  }, [])
+    reload()
+  }, [reload])
 
   const handleCreate = useCallback(() => navigate('/tasks/new'), [navigate])
   const handleView = useCallback((id: number) => navigate(`/tasks/${id}`), [navigate])
@@ -46,17 +39,18 @@ export default function TasksPage() {
   const handleDeleteRequest = useCallback((id: number) => setTaskIdToDelete(id), [])
 
   const handleStatusChange = useCallback(
-    (id: number, status: TaskStatus) => {
-      // TODO(user): llamar a updateTaskStatus(id, status), actualizar la lista con la tarea devuelta y mostrar el error si falla
-      void id
-      void status
-      showToast('success', 'Demo: aquí se cambiaría el estado de la tarea')
+    async (id: number, status: TaskStatus) => {
+      try {
+        replaceTask(await updateTaskStatus(id, status))
+        showToast('success', 'Estado actualizado')
+      } catch {
+        showToast('danger', 'No se pudo actualizar el estado')
+      }
     },
-    [showToast],
+    [replaceTask, showToast],
   )
 
   const handleDeleteConfirm = useCallback(() => {
-    // TODO(user): llamar a deleteTask(taskIdToDelete), quitar la tarea de la lista, gestionar isDeleting y errores
     setTaskIdToDelete(null)
     showToast('success', 'Demo: aquí se eliminaría la tarea')
   }, [showToast])

@@ -1,39 +1,84 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { isAxiosError } from 'axios'
 import Alert from 'react-bootstrap/Alert'
 import Button from 'react-bootstrap/Button'
+import Spinner from 'react-bootstrap/Spinner'
 import { useNavigate, useParams } from 'react-router-dom'
 import ConfirmDialog from '../components/tasks/ConfirmDialog'
 import TaskDetail from '../components/tasks/TaskDetail'
 import ToastNotifications from '../components/tasks/ToastNotifications'
+import { deleteTask, getTaskById } from '../services/taskService'
+import type { Task } from '../types/task'
 import type { ToastMessage } from '../types/toast'
-import { getMockTaskById } from '../utils/mockTasks'
 
 export default function TaskDetailPage() {
   const navigate = useNavigate()
   const { id } = useParams()
+
+  const [task, setTask] = useState<Task | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [notFound, setNotFound] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [toasts, setToasts] = useState<ToastMessage[]>([])
   const nextToastId = useRef(1)
 
-  // TODO(user): reemplazar mock por datos reales de la API
-  // TODO(user): cargar con getTaskById(Number(id)) y gestionar isLoading, error de red y 404
-  const task = getMockTaskById(Number(id))
+  const showToast = useCallback((variant: ToastMessage['variant'], message: string) => {
+    const toastId = nextToastId.current++
+    setToasts((current) => [...current, { id: toastId, variant, message }])
+  }, [])
 
   const closeToast = useCallback((toastId: number) => {
     setToasts((current) => current.filter((toast) => toast.id !== toastId))
   }, [])
 
-  const handleDeleteConfirm = () => {
-    // TODO(user): llamar a deleteTask(task.id), gestionar isDeleting/errores y navegar a "/" al terminar
-    setIsDeleteOpen(false)
-    const toastId = nextToastId.current++
-    setToasts((current) => [
-      ...current,
-      { id: toastId, variant: 'success', message: 'Demo: aquí se eliminaría la tarea' },
-    ])
+  const loadTask = useCallback(async () => {
+    setIsLoading(true)
+    setNotFound(false)
+    setError(null)
+    try {
+      setTask(await getTaskById(Number(id)))
+    } catch (err) {
+      if (isAxiosError(err) && err.response?.status === 404) {
+        setNotFound(true)
+      } else {
+        setError('No se pudo cargar la tarea.')
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }, [id])
+
+  useEffect(() => {
+    loadTask()
+  }, [loadTask])
+
+  const handleDeleteConfirm = async () => {
+    if (!task) return
+    setIsDeleting(true)
+    try {
+      await deleteTask(task.id)
+      navigate('/')
+    } catch {
+      setIsDeleteOpen(false)
+      showToast('danger', 'No se pudo eliminar la tarea')
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
-  if (!task) {
+  if (isLoading) {
+    return (
+      <div className="text-center py-5">
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Cargando tarea...</span>
+        </Spinner>
+      </div>
+    )
+  }
+
+  if (notFound) {
     return (
       <Alert variant="warning" className="d-flex flex-wrap align-items-center gap-3">
         <i className="bi bi-search fs-4" aria-hidden="true" />
@@ -41,6 +86,22 @@ export default function TaskDetailPage() {
           <strong>Tarea no encontrada.</strong>
           <div>Es posible que haya sido eliminada.</div>
         </div>
+        <Button variant="outline-secondary" onClick={() => navigate('/')}>
+          Volver al listado
+        </Button>
+      </Alert>
+    )
+  }
+
+  if (error || !task) {
+    return (
+      <Alert variant="danger" className="d-flex flex-wrap align-items-center gap-3">
+        <div className="flex-grow-1">
+          <strong>{error ?? 'No se pudo cargar la tarea.'}</strong>
+        </div>
+        <Button variant="outline-danger" onClick={loadTask}>
+          Reintentar
+        </Button>
         <Button variant="outline-secondary" onClick={() => navigate('/')}>
           Volver al listado
         </Button>
@@ -61,7 +122,7 @@ export default function TaskDetailPage() {
         show={isDeleteOpen}
         title="Eliminar tarea"
         message={`¿Seguro que quieres eliminar "${task.title}"? Esta acción no se puede deshacer.`}
-        isLoading={false}
+        isLoading={isDeleting}
         onConfirm={handleDeleteConfirm}
         onCancel={() => setIsDeleteOpen(false)}
       />
